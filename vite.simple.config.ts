@@ -1,14 +1,14 @@
-// A plain Vite + React dev server for local work on the page.
+// Plain Vite + React: the dev server (`dev`) and the static production build
+// (`build:static`, which is what Vercel runs).
 //
-// The default `dev` script runs vinext with the Cloudflare plugin, which boots a
-// workerd runtime. That stack is what the site deploys to, but it is also heavy
-// and, on some Windows hosts, loses a startup race against workerd and dies
-// before binding a port. Nothing on this page needs it: app/page.tsx is a single
-// client component with no server components, data loading, or bindings.
+// `dev:vinext` / `build` drive vinext with the Cloudflare plugin, which boots a
+// workerd runtime and emits a Worker bundle — the right target for Cloudflare,
+// but not something a static host can serve, and heavy for local work. Nothing on
+// this page needs it: app/page.tsx is a single client component with no server
+// components, data loading, or bindings, and the contact form is a mailto link.
 //
-// So this config serves that same component over plain Vite — same source, same
-// CSS, same assets, no Worker runtime. Use it for day-to-day UI work; use
-// `npm run build` (vinext) for anything that has to match the deploy target.
+// So this config builds and serves that same component as a plain static site —
+// same source, same CSS, same assets, no Worker runtime.
 
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
@@ -25,6 +25,12 @@ export default defineConfig({
   },
   // postcss.config.mjs (Tailwind) lives at the project root, not at `root`.
   css: { postcss: projectRoot },
+  // `root` is dev-vite/, so point the output back at the project root. Kept
+  // separate from vinext's dist/ so the two builds never collide.
+  build: {
+    outDir: fileURLToPath(new URL("./dist-static/", import.meta.url)),
+    emptyOutDir: true,
+  },
   server: {
     host: "127.0.0.1",
     port: 5173,
