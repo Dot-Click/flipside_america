@@ -9,7 +9,7 @@
   --card-foreground: #fff;
   --popover: #1b1710;
   --popover-foreground: #fff;
-  --primary: #c8a848;
+  --primary: #eabd34;
   --primary-foreground: #fff;
   --secondary: #f5efe2;
   --secondary-foreground: #161208;
@@ -117,7 +117,7 @@ p {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  background: radial-gradient(ellipse at -7% 108%, #8a6a18 0%, #6d5210 13%, #463407 29%, transparent 52%), radial-gradient(ellipse at 105% -5%, #7e5f16 0%, #4a3708 17%, transparent 41%), #0d0a06
+  background: radial-gradient(ellipse at -7% 108%, #d4b22c 0%, #6d5210 13%, #463407 29%, transparent 52%), radial-gradient(ellipse at 105% -5%, #7e5f16 0%, #4a3708 17%, transparent 41%), #0d0a06
 }
 
 .hero:after {
