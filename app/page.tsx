@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, type FormEvent } from "react";
+import { useState, useEffect, useRef, type FormEvent, type CSSProperties } from "react";
 import { ArrowUpRight, ArrowRight, ChevronDown, Play, Plus, Minus, Mail, Phone, MapPin, Menu, X, Camera } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
@@ -11,6 +11,10 @@ const reels = [
     { id: "01M2XJJ3FJBFH1XEAMDFHK3W85", title: "A different perspective", tag: "IDEAS INTO ACTION" },
     { id: "01M2XJJ3FKM5S398KSRERBA77W", title: "Beyond the boardroom", tag: "THE FLIPSIDE OF BUSINESS" },
 ];
+// Slot order for the hero fan, centre outwards. There are five slots but only
+// four clips, so one repeats — placed at the two outermost slots, where the
+// cards are smallest, most tilted and most overlapped.
+const heroFan = [1, 3, 0, 2, 1];
 const services = [
     { name: "Credit enhancement", category: "PERSONAL & BUSINESS", description: "Build a stronger financial foundation with personal and business credit-building guidance.", detail: "We help you understand your credit profile and explore practical next steps based on your goals. Individual circumstances and results vary.", image: 2 },
     { name: "Business consulting", category: "STRATEGY & GROWTH", description: "Bring clarity to your next move. Get support with business strategy, marketing, growth, and operations.", detail: "For entrepreneurs starting something new or working through their next stage, we bring a direct, resourceful approach to business decisions.", image: 3 },
@@ -75,23 +79,27 @@ export default function Home() {
                         <ul className="nav-menu" id="services-menu">{serviceMenu.map((label, i) => <li key={label}><a href="#services" onClick={() => pickService(i)}>{label}</a></li>)}</ul>
                     </div>
                     {navLinks.map(([title, id]) => <a key={id} onClick={() => setMenu(false)} href={`#${id}`}>{title}</a>)}
+                    {/* Small screens only; the header keeps its own CTA above 600px.
+                        Exactly one of the two is ever rendered, so neither the reading
+                        order nor the tab order gains a duplicate. */}
+                    <a className="nav-cta" onClick={() => setMenu(false)} href="#contact">Let’s talk <ArrowUpRight size={15} /></a>
                 </nav>
                 <a className="header-cta" href="#contact">Let’s talk <ArrowUpRight size={16} /></a><button className="menu-toggle" onClick={() => setMenu(!menu)} aria-label={menu ? "Close navigation" : "Open navigation"} aria-expanded={menu}>{menu ? <X /> : <Menu />}</button></header>
             <div className="hero-content">
-                <div className="hero-copy"><h1>Flipside America Inc</h1><p>Strategic consulting for credit, business growth, media, and investigations, and business and property management</p><div className="hero-actions"><a className="button button-light" href="#contact">Let’s talk possibilities <RoundArrow /></a><a className="text-link" href="#services">Explore our services <ArrowUpRight size={17} /></a></div><div className="hero-location"><MapPin size={15} /><span>1700 Market St, Philadelphia, PA 19103, USA</span></div></div>
+                <div className="hero-copy"><h1>Flipside America Inc</h1><p>Strategic consulting for credit, business growth, media, and investigations, and business and property management</p><div className="hero-actions"><a className="button button-light" href="#contact">Let’s talk possibilities <RoundArrow /></a></div><div className="hero-location"><MapPin size={15} /><span>1700 Market St, Philadelphia, PA 19103, USA</span></div></div>
             </div>
-            {/* Full-bleed reel carousel. Three passes of the set, so the track is
-                always wider than the viewport at any point in the loop. */}
+            {/* Reels dealt out as a shuffled fan. Each card gets its slot as
+                `--p` (signed offset from the centre) and `--a` (unsigned); the
+                stylesheet turns those into the spread, drop, tilt and scale. */}
             <div className="hero-reels" aria-label="Flipside America reels">
-                <div className="hero-reel-track">
-                    {[0, 1, 2].map(pass => reels.map((r, i) =>
-                        <button className="hero-reel-card" key={`${pass}-${i}`} onClick={() => setReel(i)} tabIndex={pass ? -1 : 0} aria-hidden={pass !== 0} aria-label={`Play ${r.title}`}>
-                            <img src={media + r.id + ".jpg"} alt={pass ? "" : r.title} loading={pass === 0 && i < 2 ? undefined : "lazy"} />
-                            <span className="hero-reel-play"><Play size={16} fill="currentColor" /></span>
-                            <span className="hero-reel-label"><small>{r.tag}</small><strong>{r.title}</strong></span>
-                        </button>
-                    ))}
-                </div>
+                {heroFan.map((r, slot) => {
+                    const p = slot - (heroFan.length - 1) / 2;
+                    return <button className="hero-reel-card" key={slot} onClick={() => setReel(r)} aria-label={`Play ${reels[r].title}`} style={{ "--p": p, "--a": Math.abs(p) } as CSSProperties}>
+                        <img src={media + reels[r].id + ".jpg"} alt={reels[r].title} loading={Math.abs(p) < 2 ? undefined : "lazy"} />
+                        <span className="hero-reel-play"><Play size={16} fill="currentColor" /></span>
+                        <span className="hero-reel-label"><small>{reels[r].tag}</small><strong>{reels[r].title}</strong></span>
+                    </button>;
+                })}
             </div>
         </section>
         <section className="about wrap" id="about"><div className="about-copy"><div className="eyebrow dark-eyebrow">01 / ABOUT FLIPSIDE</div><h2>A bold vision.<br />A personal approach.</h2><p>We’re Flipside America Inc. We help individuals and businesses see what’s possible—and take the next step with clarity and confidence.</p><p>Founded by entrepreneur Messiah the Almighty, our work brings together credit guidance, business strategy, creative media, investigations, and property management. Different needs. One resourceful partner.</p><a className="button button-dark" href="#contact">Get to know us <RoundArrow /></a><div className="founder-signoff"><img src="/logo.png" alt="Seal of the Messiah" width={52} height={52} loading="lazy" /><div><strong>Messiah the Almighty</strong><span>Founder & CEO, Flipside America Inc.</span></div></div></div><div className="reel-wall" id="gallery" aria-label="Flipside America video reels">{[0, 1].map(col => <div className="reel-column" key={col}><div className="reel-track">{[0, 1].map(pass => [col, col + 2].map(i => <button className="reel-card" key={`${pass}-${i}`} onClick={() => setReel(i)} tabIndex={pass ? -1 : 0} aria-hidden={pass === 1} aria-label={`Play ${reels[i].title}`}><img src={media + reels[i].id + ".jpg"} alt={pass ? "" : reels[i].title} loading="lazy" /><span className="reel-mini-play"><Play size={17} fill="currentColor" /></span><span className="reel-card-caption"><small>{reels[i].tag}</small><strong>{reels[i].title}</strong></span></button>))}</div></div>)}</div></section>
