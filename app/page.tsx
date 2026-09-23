@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, type FormEvent } from "react";
-import { ArrowUpRight, ArrowRight, ArrowDown, ChevronDown, Play, Plus, Minus, Mail, Phone, MapPin, Menu, X, Camera } from "lucide-react";
+import { ArrowUpRight, ArrowRight, ChevronDown, Play, Plus, Minus, Mail, Phone, MapPin, Menu, X, Camera } from "lucide-react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const media = "/media/";
@@ -49,6 +49,15 @@ export default function Home() {
     }, [servicesOpen]);
     const [faq, setFaq] = useState<number | null>(1);
     const [service, setService] = useState<number | null>(null);
+    // Floating reel preview for the hovered service row. `peek` outlives the
+    // hover so the panel still has its clip to show while fading out; `peekOn`
+    // drives visibility. `seq` bumps on every enter so the pop animation
+    // replays even when re-entering the row already being shown.
+    const [peek, setPeek] = useState<{ i: number; seq: number } | null>(null);
+    const [peekOn, setPeekOn] = useState(false);
+    // Gated on the same query as the CSS, so the clip is never fetched while the
+    // panel is hidden — and not on touch, where a tap's sticky "hover" pins it open.
+    function peekAt(i: number) { if (window.matchMedia("(hover:hover) and (min-width:1100px)").matches) { setPeek(p => ({ i, seq: (p?.seq ?? 0) + 1 })); setPeekOn(true) } }
     const [reel, setReel] = useState<number | null>(null);
     const [emailReady, setEmailReady] = useState(false);
     function pickService(i: number) { setService(i); setServicesOpen(false); setMenu(false) }
@@ -68,24 +77,36 @@ export default function Home() {
                     {navLinks.map(([title, id]) => <a key={id} onClick={() => setMenu(false)} href={`#${id}`}>{title}</a>)}
                 </nav>
                 <a className="header-cta" href="#contact">Let’s talk <ArrowUpRight size={16} /></a><button className="menu-toggle" onClick={() => setMenu(!menu)} aria-label={menu ? "Close navigation" : "Open navigation"} aria-expanded={menu}>{menu ? <X /> : <Menu />}</button></header>
-            <div className="hero-content wrap">
+            <div className="hero-content">
                 <div className="hero-copy"><h1>Flipside America Inc</h1><p>Strategic consulting for credit, business growth, media, and investigations, and business and property management</p><div className="hero-actions"><a className="button button-light" href="#contact">Let’s talk possibilities <RoundArrow /></a><a className="text-link" href="#services">Explore our services <ArrowUpRight size={17} /></a></div><div className="hero-location"><MapPin size={15} /><span>1700 Market St, Philadelphia, PA 19103, USA</span></div></div>
-                <div className="hero-visual">
-                    <button className="hero-phone" onClick={() => setReel(0)} aria-label="Play Meet the Flipside CEO with sound">
-                        <span className="phone-screen">
-                            <video src={media + reels[0].id + ".mp4"} poster={media + reels[0].id + ".jpg"} autoPlay muted loop playsInline preload="auto" />
-                            <span className="hero-reel-shade" />
-                            <span className="hero-play">
-                                <Play size={18} fill="currentColor" />
-                            </span>
-                        </span>
-                        <img className="phone-frame" src="/mobile-screen.png" alt="" aria-hidden="true" draggable={false} />
-                    </button>
+            </div>
+            {/* Full-bleed reel carousel. Three passes of the set, so the track is
+                always wider than the viewport at any point in the loop. */}
+            <div className="hero-reels" aria-label="Flipside America reels">
+                <div className="hero-reel-track">
+                    {[0, 1, 2].map(pass => reels.map((r, i) =>
+                        <button className="hero-reel-card" key={`${pass}-${i}`} onClick={() => setReel(i)} tabIndex={pass ? -1 : 0} aria-hidden={pass !== 0} aria-label={`Play ${r.title}`}>
+                            <img src={media + r.id + ".jpg"} alt={pass ? "" : r.title} loading={pass === 0 && i < 2 ? undefined : "lazy"} />
+                            <span className="hero-reel-play"><Play size={16} fill="currentColor" /></span>
+                            <span className="hero-reel-label"><small>{r.tag}</small><strong>{r.title}</strong></span>
+                        </button>
+                    ))}
                 </div>
-            </div><div className="hero-bottom wrap"><span>STRATEGY. CONFIDENCE. FORWARD MOTION.</span><a href="#about">Discover the flipside <ArrowDown size={16} /></a></div>
+            </div>
         </section>
         <section className="about wrap" id="about"><div className="about-copy"><div className="eyebrow dark-eyebrow">01 / ABOUT FLIPSIDE</div><h2>A bold vision.<br />A personal approach.</h2><p>We’re Flipside America Inc. We help individuals and businesses see what’s possible—and take the next step with clarity and confidence.</p><p>Founded by entrepreneur Messiah the Almighty, our work brings together credit guidance, business strategy, creative media, investigations, and property management. Different needs. One resourceful partner.</p><a className="button button-dark" href="#contact">Get to know us <RoundArrow /></a><div className="founder-signoff"><img src="/logo.png" alt="Seal of the Messiah" width={52} height={52} loading="lazy" /><div><strong>Messiah the Almighty</strong><span>Founder & CEO, Flipside America Inc.</span></div></div></div><div className="reel-wall" id="gallery" aria-label="Flipside America video reels">{[0, 1].map(col => <div className="reel-column" key={col}><div className="reel-track">{[0, 1].map(pass => [col, col + 2].map(i => <button className="reel-card" key={`${pass}-${i}`} onClick={() => setReel(i)} tabIndex={pass ? -1 : 0} aria-hidden={pass === 1} aria-label={`Play ${reels[i].title}`}><img src={media + reels[i].id + ".jpg"} alt={pass ? "" : reels[i].title} loading="lazy" /><span className="reel-mini-play"><Play size={17} fill="currentColor" /></span><span className="reel-card-caption"><small>{reels[i].tag}</small><strong>{reels[i].title}</strong></span></button>))}</div></div>)}</div></section>
-        <section className="services-section" id="services"><div className="services-paper wrap"><div className="services-heading"><h2>SERVICES</h2><div><span className="eyebrow dark-eyebrow">02 / WHAT WE DO</span><p>Different ambitions.<br />The right support.</p></div></div><div className="service-list">{services.map((s, i) => <article className={`service-row ${service === i ? "expanded" : ""}`} key={s.name}><button className="service-main" onClick={() => setService(service === i ? null : i)} aria-expanded={service === i} aria-controls={`service-${i}`}><span className="service-number">0{i + 1}</span><h3>{s.name}</h3><span className="service-category">{s.category}</span><p>{s.description}</p><span className="service-image"><img src={media + reels[s.image].id + ".jpg"} alt="" loading="lazy" /></span><span className="service-toggle">{service === i ? <Minus size={19} /> : <ArrowUpRight size={20} />}</span></button>{service === i && <div className="service-detail" id={`service-${i}`}><p>{s.detail}</p><a href="#contact">Let’s discuss your needs <ArrowUpRight size={17} /></a></div>}</article>)}</div><div className="services-foot"><span>One partner. A world of possibility.</span><a href="#contact">Find your way forward <ArrowRight size={17} /></a></div></div></section>
+        <section className="services-section" id="services"><div className="services-paper wrap"><div className="services-heading"><h2>SERVICES</h2><div><span className="eyebrow dark-eyebrow">02 / WHAT WE DO</span><p>Different ambitions.<br />The right support.</p></div></div><div className="service-list" onMouseLeave={() => setPeekOn(false)}>{services.map((s, i) => <article className={`service-row ${service === i ? "expanded" : ""}`} key={s.name} onMouseEnter={() => peekAt(i)}><button className="service-main" onClick={() => setService(service === i ? null : i)} aria-expanded={service === i} aria-controls={`service-${i}`}><span className="service-number">0{i + 1}</span><h3>{s.name}</h3><span className="service-category">{s.category}</span><p>{s.description}</p><span className="service-image"><img src={media + reels[s.image].id + ".jpg"} alt="" loading="lazy" /></span><span className="service-toggle">{service === i ? <Minus size={19} /> : <ArrowUpRight size={20} />}</span></button>{service === i && <div className="service-detail" id={`service-${i}`}><p>{s.detail}</p><a href="#contact">Let’s discuss your needs <ArrowUpRight size={17} /></a></div>}
+                {/* 9:16 preview of this row's reel, anchored to the row's right
+                    edge. Decorative — the same clips are reachable from the
+                    gallery — and pointer-transparent, so it can never steal the
+                    hover that drives it. Kept mounted while fading out, so the
+                    exit shows the clip rather than an empty panel. */}
+                {peek?.i === i && <div className={peekOn ? "service-peek visible" : "service-peek"} aria-hidden="true">
+                    <div className="service-peek-card" key={peek.seq}>
+                        <video src={media + reels[s.image].id + ".mp4"} poster={media + reels[s.image].id + ".jpg"} muted loop autoPlay playsInline preload="metadata" />
+                    </div>
+                </div>}</article>)}</div><div className="services-foot"><span>One partner. A world of possibility.</span><a href="#contact">Find your way forward <ArrowRight size={17} /></a></div>
+</div></section>
         <section className="faq-section" id="faq"><div className="faq-panel wrap"><div className="eyebrow dark-eyebrow">03 / A LITTLE MORE CLARITY</div><h2>Good questions.<br className="mobile-break" /> Straight answers.</h2><div className="faq-list">{faqs.map(([q, a], i) => <div key={q} className={`faq-item ${faq === i ? "active" : ""}`}><button onClick={() => setFaq(faq === i ? null : i)} aria-expanded={faq === i} aria-controls={`answer-${i}`}><span className="faq-number">0{i + 1}</span><span>{q}</span><span className="faq-toggle"><Plus size={19} /></span></button><div className="faq-answer-wrap" id={`answer-${i}`}><div className="faq-answer-clip"><div className="faq-answer">{a}</div></div></div></div>)}</div><p className="faq-footer">Something else on your mind?<a href="#contact">Let’s talk <ArrowUpRight size={15} /></a></p></div></section>
         <section className="contact-section" id="contact"><div className="contact-inner wrap"><div className="contact-copy"><div className="eyebrow">04 / YOUR NEXT MOVE</div><h2>Let’s turn<br />“what if” into<br /><span>what’s next.</span></h2><p>Have a goal, a question, or a new idea?<br />We’re ready to hear it.</p><div className="contact-links"><a href="mailto:flipsideinfo@flipsideamericainc.com"><Mail size={17} />flipsideinfo@flipsideamericainc.com</a><a href="tel:+12158098568"><Phone size={17} />(215) 809-8568</a><a href="https://www.google.com/maps/search/?api=1&query=1700%20Market%20St%2C%20Philadelphia%2C%20PA%2019103%2C%20USA" target="_blank" rel="noreferrer"><MapPin size={17} />1700 Market St, Philadelphia, PA 19103</a></div><a className="social-link" href="https://www.instagram.com/flipsideceo/" target="_blank" rel="noreferrer"><Camera size={18} />@flipsideceo <ArrowUpRight size={16} /></a></div><form className="contact-form" onSubmit={contact}><div className="form-heading"><h3>Start a conversation</h3><ArrowUpRight size={24} /></div><div className="name-fields"><label>First name<input name="first" autoComplete="given-name" placeholder="First name" required maxLength={80} /></label><label>Last name<input name="last" autoComplete="family-name" placeholder="Last name" required maxLength={80} /></label></div><label>Email address<input name="email" autoComplete="email" type="email" placeholder="you@example.com" required /></label><label>Phone number <span>(optional)</span><input name="phone" autoComplete="tel" type="tel" placeholder="(000) 000-0000" /></label><label>What do you have in mind?<textarea name="message" placeholder="A little about you and what you’re looking for…" required rows={4} maxLength={4000} /></label><button className="button button-light form-submit" type="submit">Let’s get started <RoundArrow /></button><p className="form-note" role="status">{emailReady ? "Your email draft is ready. Send it from your email app to reach our team. If it didn’t open, use the email link on the left." : "Opens your email app with your message ready to send."}</p></form></div></section>
         <footer><div className="footer-main wrap"><div><Brand /><p>A different perspective.<br />A clearer path forward.</p></div><div><h3>Explore</h3><a href="#about">About us</a><a href="#services">Our services</a><a href="#faq">FAQs</a></div><div><h3>Let’s connect</h3><a href="#contact">Start a conversation <ArrowUpRight size={14} /></a><a href="https://www.instagram.com/flipsideceo/" target="_blank" rel="noreferrer">Instagram <ArrowUpRight size={14} /></a><a href="tel:+12158098568">(215) 809-8568</a></div><div><h3>Find us</h3><p>1700 Market Street<br />Philadelphia, PA 19103<br />United States</p></div></div><div className="footer-bottom wrap"><span>© {new Date().getFullYear()} Flipside America Inc. All rights reserved.</span><a href="#home">Back to top <ArrowUpRight size={15} /></a></div></footer>
