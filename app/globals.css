@@ -741,7 +741,11 @@ main:before {
 
 .services-section {
   padding: 100px 0 80px;
-  background: transparent
+  background: transparent;
+  /* The hairlines below are 100vw, which overshoots the content box by the
+     scrollbar's width. `clip` trims that without making a scroll container, and
+     leaves the y axis visible so a row's hover preview can still overhang. */
+  overflow-x: clip
 }
 
 .services-paper {
@@ -779,10 +783,25 @@ main:before {
   letter-spacing: -.3px
 }
 
-.service-row {
-  border-top: 1px solid #ffffff1c;
-  /* Anchor for this row's hover preview. */
+/* The rules run edge to edge while the rows keep their wrap-aligned content.
+   Drawn as a pseudo rather than by widening the rows themselves, so
+   .service-peek's `right: 0` still resolves to the content edge. */
+.service-row,
+.services-foot {
+  /* Anchor for the hairline — and, on a row, for its hover preview. */
   position: relative
+}
+
+.service-row:before,
+.services-foot:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: calc(50% - 50vw);
+  width: 100vw;
+  height: 1px;
+  background: #ffffff1c;
+  pointer-events: none
 }
 
 .service-main {
@@ -936,7 +955,6 @@ main:before {
 }
 
 .services-foot {
-  border-top: 1px solid #ffffff1c;
   padding: 24px 0;
   display: flex;
   justify-content: space-between;
